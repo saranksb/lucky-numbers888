@@ -158,6 +158,13 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500}
     </table>
   </div>
   <p class="status-line" id="hist-status"></p>
+  <div class="actions-row">
+    <button class="btn small ghost" id="btn-hist-export">ส่งออกผลย้อนหลังเป็นไฟล์ JSON</button>
+    <label class="btn small ghost" style="margin:0">
+      นำเข้าผลย้อนหลังจากไฟล์ JSON
+      <input type="file" id="hist-import-file" accept="application/json" hidden>
+    </label>
+  </div>
 
   <details>
     <summary>+ ลองดึงข้อมูลอัตโนมัติจาก API (อาจใช้ไม่ได้ ขึ้นกับว่ามี API ที่ยังทำงานอยู่ไหม)</summary>

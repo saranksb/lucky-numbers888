@@ -263,6 +263,36 @@ function initHistory() {
     ['#man-date', '#man-p1', '#man-f3', '#man-b3', '#man-b2'].forEach(s => $(s).value = '');
     renderHistory(); renderIndicators();
   });
+  $('#btn-hist-export').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(Object.values(readJSON(LS.cache, {})), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'lotto-results.json'; a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $('#hist-import-file').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง (ต้องเป็น array)');
+      const cache = readJSON(LS.cache, {});
+      let n = 0;
+      data.forEach(d => {
+        if (!d || !d.date) return;
+        cache[d.date] = {
+          date: d.date,
+          prizeFirst: d.prizeFirst || null,
+          front3: Array.isArray(d.front3) ? d.front3 : [],
+          back3: Array.isArray(d.back3) ? d.back3 : [],
+          back2: d.back2 || null,
+        };
+        n++;
+      });
+      writeJSON(LS.cache, cache);
+      renderHistory(); renderIndicators();
+      alert(`นำเข้าสำเร็จ ${n} งวด`);
+    } catch (err) { alert('นำเข้าไฟล์ไม่สำเร็จ: ' + err.message); }
+    e.target.value = '';
+  });
 }
 
 /* ---------- render: ตัวชี้วัด ---------- */
