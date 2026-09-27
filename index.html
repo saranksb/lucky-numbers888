@@ -107,6 +107,21 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
 .bars .bar-wrap small{font-size:9px;color:var(--ink3);margin-top:4px}
 .bars .bar-wrap .cnt{font-size:9px;color:var(--gold-ink);font-weight:600;margin-bottom:2px}
 
+/* พยากรณ์รางวัลที่ 1 */
+.ghost-check{display:inline-flex;align-items:center;gap:6px;background:var(--sunk);border-radius:999px;padding:8px 12px;font-size:12px;min-height:38px}
+.ghost-check input{width:16px;height:16px}
+.pos-card .fc-d{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0}
+.pos-card .fc-d b{font-variant-numeric:tabular-nums;font-size:14px}
+.tier{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.tier.high{background:var(--hot)} .tier.mid{background:var(--ink3)} .tier.low{background:var(--cold)}
+.top10-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.top10-row:last-child{border-bottom:0}
+.top10-row .rank{width:20px;color:var(--ink3);font-size:12px;flex:none}
+.top10-row .n{font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:.04em;width:100px;flex:none}
+.top10-row .bar-track{flex:1;height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.top10-row .bar-fill{height:100%;background:var(--gold);border-radius:4px}
+.top10-row .sc{width:38px;text-align:right;font-size:11px;color:var(--ink3);flex:none}
+
 /* thumb-zone bottom nav */
 .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   display:flex;padding:6px 6px calc(env(safe-area-inset-bottom) + 6px);box-shadow:0 -4px 16px -8px rgba(0,0,0,.15)}
@@ -204,12 +219,39 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
   </div>
 
   <details>
+    <summary>+ เพิ่มรางวัลข้างเคียง/รางวัลที่ 2-3 ให้งวดที่มีอยู่ (ใช้ปรับพยากรณ์ให้แม่นขึ้น)</summary>
+    <div style="margin-top:10px">
+      <div class="field"><label>เลือกงวดที่จะเพิ่มข้อมูล</label><select id="enrich-date"></select></div>
+      <div class="field"><label>ข้างเคียงรางวัลที่ 1 (2 ชุด, คั่นด้วย ,)</label><input type="text" id="enrich-near" placeholder="876977,876979"></div>
+      <div class="field"><label>รางวัลที่ 2 (5 ชุด, คั่นด้วย ,)</label><input type="text" id="enrich-p2" placeholder="421381,371258,970384,998363,153393"></div>
+      <div class="field"><label>รางวัลที่ 3 (10 ชุด, คั่นด้วย ,)</label><input type="text" id="enrich-p3" placeholder="045714,906397,911225,...">           </div>
+      <button class="btn small" id="btn-enrich-save">บันทึกข้อมูลเพิ่ม</button>
+      <p class="status-line" id="enrich-status"></p>
+    </div>
+  </details>
+
+  <details>
     <summary>+ ลองดึงข้อมูลอัตโนมัติจาก API (อาจใช้ไม่ได้ ขึ้นกับว่ามี API ที่ยังทำงานอยู่ไหม)</summary>
     <div style="margin-top:10px" class="actions-row">
       <button class="btn small ghost" id="btn-refresh-latest">ดึงงวดล่าสุด</button>
       <button class="btn small ghost" id="btn-load-more">โหลดย้อนหลังเพิ่ม</button>
     </div>
   </details>
+</div>
+
+<div class="block">
+  <h2>🔮 พยากรณ์รางวัลที่ 1 (โมเดลความถี่รายหลัก)</h2>
+  <p class="sub" style="margin-bottom:10px">คำนวณ % จาก "ส่วนแบ่งความถี่ในอดีต" ของแต่ละหลัก ไม่ใช่ความน่าจะเป็นจริงของงวดถัดไป — แต่ละงวดสุ่มเป็นอิสระ 100% ทำไว้เป็นแบบฝึกหัดสถิติ/โปรเจกต์วิจัยเท่านั้น</p>
+  <div class="actions-row" style="margin-top:0;margin-bottom:12px">
+    <label class="ghost-check"><input type="checkbox" id="fc-near"> ข้างเคียงรางวัลที่ 1</label>
+    <label class="ghost-check"><input type="checkbox" id="fc-p2"> รางวัลที่ 2</label>
+    <label class="ghost-check"><input type="checkbox" id="fc-p3"> รางวัลที่ 3</label>
+    <label class="ghost-check"><input type="checkbox" id="fc-decay"> ถ่วงน้ำหนักงวดใหม่กว่า</label>
+  </div>
+  <p class="status-line" id="forecast-status"></p>
+  <div id="forecast-pos-grid" class="pos-grid"></div>
+  <h2 style="margin-top:18px;font-size:15px">🏆 Top 10 เลขที่ดัชนีสูงสุด</h2>
+  <div id="forecast-top10"></div>
 </div>
 
 <div class="block" id="sec-stats">

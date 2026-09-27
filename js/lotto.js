@@ -256,6 +256,8 @@ function renderHistory() {
   setStatus('#hist-status', HISTORY.length ? `มีข้อมูล ${HISTORY.length} งวด` : 'ยังไม่มีข้อมูล — กรอกผลรางวัลด้วยตนเองด้านบน');
   renderTickets();
   renderExtraStats();
+  populateEnrichDates();
+  renderForecast();
 }
 
 /* ---------- สถิติเลขท้าย 2 ตัวเพิ่มเติม: คู่/คี่, สูง/ต่ำ, ผลรวม ---------- */
@@ -346,6 +348,91 @@ function initHistory() {
   });
 }
 
+/* ---------- พยากรณ์รางวัลที่ 1: โมเดลความถี่รายหลัก (pool หลายรางวัลเข้าด้วยกัน) ---------- */
+function pooledPrizeNumbers(draw, opts) {
+  let arr = draw.prizeFirst ? [draw.prizeFirst] : [];
+  if (opts.near && Array.isArray(draw.prizeFirstNear)) arr = arr.concat(draw.prizeFirstNear);
+  if (opts.p2 && Array.isArray(draw.prize2)) arr = arr.concat(draw.prize2);
+  if (opts.p3 && Array.isArray(draw.prize3)) arr = arr.concat(draw.prize3);
+  return arr.filter(s => s && s.length === 6);
+}
+function computePositionalModel(history, opts) {
+  const n = history.length;
+  const score = Array.from({ length: 6 }, () => Array(10).fill(0));
+  history.forEach((draw, i) => {
+    const weight = opts.decay ? Math.pow(0.9, n - 1 - i) : 1;
+    pooledPrizeNumbers(draw, opts).forEach(numStr => {
+      for (let p = 0; p < 6; p++) score[p][+numStr[p]] += weight;
+    });
+  });
+  return score.map(digitScores => {
+    const total = digitScores.reduce((a, b) => a + b, 0);
+    const list = digitScores.map((s, d) => ({ digit: String(d), score: s, pct: total ? s / total * 100 : 10 }));
+    list.sort((a, b) => b.score - a.score || a.digit.localeCompare(b.digit));
+    list.forEach((r, idx) => { r.tier = idx < 3 ? 'high' : idx < 7 ? 'mid' : 'low'; });
+    return list;
+  });
+}
+function buildTop10(perPos) {
+  const highDigits = perPos.map(list => list.filter(r => r.tier === 'high'));
+  let combos = [{ digits: [], score: 0 }];
+  for (let p = 0; p < 6; p++) {
+    const next = [];
+    highDigits[p].forEach(r => combos.forEach(c => next.push({ digits: [...c.digits, r.digit], score: c.score + r.pct })));
+    combos = next;
+  }
+  combos.sort((a, b) => b.score - a.score);
+  const maxScore = combos[0] ? combos[0].score : 1;
+  return combos.slice(0, 10).map(c => ({ number: c.digits.join(''), score: c.score, rel: maxScore ? c.score / maxScore * 100 : 0 }));
+}
+function renderForecast() {
+  const opts = { near: $('#fc-near').checked, p2: $('#fc-p2').checked, p3: $('#fc-p3').checked, decay: $('#fc-decay').checked };
+  if (!HISTORY.length) {
+    setStatus('#forecast-status', 'ยังไม่มีข้อมูลผลรางวัลให้คำนวณ');
+    $('#forecast-pos-grid').innerHTML = ''; $('#forecast-top10').innerHTML = '';
+    return;
+  }
+  const perPos = computePositionalModel(HISTORY, opts);
+  const sampleSize = HISTORY.reduce((sum, d) => sum + pooledPrizeNumbers(d, opts).length, 0);
+  setStatus('#forecast-status', `อิงจาก ${HISTORY.length} งวด (รวม ${sampleSize} ชุดตัวเลข 6 หลักตามตัวเลือกที่ติ๊กไว้)`);
+  const labels = ['หลัก 1', 'หลัก 2', 'หลัก 3', 'หลัก 4', 'หลัก 5', 'หลัก 6'];
+  $('#forecast-pos-grid').innerHTML = perPos.map((list, i) => `
+    <div class="pos-card"><h3>${labels[i]}</h3>
+      ${list.slice(0, 4).map(r => `<div class="fc-d"><span><span class="tier ${r.tier}"></span><b>${r.digit}</b></span><small>${r.pct.toFixed(1)}%</small></div>`).join('')}
+    </div>`).join('');
+  const top10 = buildTop10(perPos);
+  $('#forecast-top10').innerHTML = top10.map((c, i) => `
+    <div class="top10-row"><span class="rank">#${i + 1}</span><span class="n num">${c.number}</span>
+      <span class="bar-track"><span class="bar-fill" style="width:${c.rel}%"></span></span>
+      <span class="sc">${c.rel.toFixed(0)}%</span></div>`).join('');
+}
+function initForecast() {
+  ['#fc-near', '#fc-p2', '#fc-p3', '#fc-decay'].forEach(sel => $(sel).addEventListener('change', renderForecast));
+}
+
+/* ---------- เพิ่มรางวัลข้างเคียง/รางวัลที่ 2-3 ให้งวดที่มีอยู่แล้ว ---------- */
+function populateEnrichDates() {
+  const sel = $('#enrich-date'); if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = [...HISTORY].reverse().map(d => `<option value="${d.date}">${fmtTH(d.date)}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+function initEnrich() {
+  $('#btn-enrich-save').addEventListener('click', () => {
+    const date = $('#enrich-date').value;
+    const cache = readJSON(LS.cache, {});
+    const draw = cache[date];
+    if (!date || !draw) return alert('ยังไม่มีงวดให้เลือก (ต้องกรอกผลรางวัลที่ 1 ของงวดนั้นก่อนในฟอร์มด้านบน)');
+    const parseList = (val, len) => val.split(',').map(s => onlyDigits(s)).filter(s => s.length === len);
+    draw.prizeFirstNear = parseList($('#enrich-near').value, 6);
+    draw.prize2 = parseList($('#enrich-p2').value, 6);
+    draw.prize3 = parseList($('#enrich-p3').value, 6);
+    cache[date] = draw; writeJSON(LS.cache, cache);
+    setStatus('#enrich-status', `บันทึกแล้ว: ข้างเคียง ${draw.prizeFirstNear.length}, รางวัลที่2 ${draw.prize2.length}, รางวัลที่3 ${draw.prize3.length}`);
+    renderHistory(); renderForecast();
+  });
+}
+
 /* ---------- render: ตัวชี้วัด ---------- */
 let currentTab = 'back2';
 function renderIndicators() {
@@ -403,6 +490,8 @@ initSettings();
 initTickets();
 initHistory();
 initIndicatorTabs();
+initForecast();
+initEnrich();
 initBottomNav();
 renderHistory();
 renderIndicators();
