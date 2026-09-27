@@ -154,6 +154,29 @@ function saveTickets(list) { writeJSON(LS.tickets, list); }
 const TYPE_LABEL = { back2: 'ท้าย 2 ตัว', front3: '3 ตัวหน้า', back3: '3 ตัวท้าย', prizeFirst: 'รางวัลที่ 1' };
 const TYPE_MAXLEN = { back2: 2, front3: 3, back3: 3, prizeFirst: 6 };
 
+const PRIZE_AMOUNT = { back2: 2000, front3: 4000, back3: 4000, prizeFirst: 6000000 };
+const baht = n => Number(n).toLocaleString('th-TH');
+function renderTicketStats() {
+  const list = getTickets();
+  let wins = 0, spent = 0, spentCount = 0, won = 0;
+  list.forEach(tk => {
+    if (checkTicket(tk) === 'win') { wins++; won += PRIZE_AMOUNT[tk.type] || 0; }
+    if (tk.amount != null) { spent += Number(tk.amount) || 0; spentCount++; }
+  });
+  const total = list.length;
+  const winRate = total ? Math.round(wins / total * 1000) / 10 + '%' : '-';
+  const net = won - spent;
+  const tiles = [
+    { v: total, l: 'จำนวนที่ซื้อ' },
+    { v: wins, l: 'ถูกกี่ครั้ง' },
+    { v: winRate, l: 'อัตราถูก' },
+    { v: spentCount ? baht(spent) : '-', l: 'ยอดซื้อ (กรอกแล้ว)' },
+    { v: won ? baht(won) : '-', l: 'ยอดรางวัลที่ได้', cls: 'gold' },
+    { v: (spentCount || won) ? (net >= 0 ? '+' : '') + baht(net) : '-', l: 'กำไร/ขาดทุน' },
+  ];
+  $('#tk-stats').innerHTML = tiles.map(t => `<div class="stat-tile"><div class="v ${t.cls || ''}">${esc(t.v)}</div><div class="l">${t.l}</div></div>`).join('');
+}
+
 function checkTicket(tk) {
   const draw = HISTORY.find(d => d.date === tk.date);
   if (!draw) return 'pending';
@@ -178,6 +201,7 @@ function renderTickets() {
     saveTickets(getTickets().filter(t => String(t.id) !== btn.dataset.id));
     renderTickets();
   }));
+  renderTicketStats();
 }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
@@ -231,6 +255,33 @@ function renderHistory() {
   });
   setStatus('#hist-status', HISTORY.length ? `มีข้อมูล ${HISTORY.length} งวด` : 'ยังไม่มีข้อมูล — กรอกผลรางวัลด้วยตนเองด้านบน');
   renderTickets();
+  renderExtraStats();
+}
+
+/* ---------- สถิติเลขท้าย 2 ตัวเพิ่มเติม: คู่/คี่, สูง/ต่ำ, ผลรวม ---------- */
+function renderExtraStats() {
+  const vals = HISTORY.map(d => d.back2).filter(Boolean);
+  const total = vals.length;
+  let odd = 0, low = 0;
+  vals.forEach(v => { const n = parseInt(v, 10); if (n % 2 === 1) odd++; if (n < 50) low++; });
+  const even = total - odd, high = total - low;
+  const pct = n => total ? Math.round(n / total * 1000) / 10 + '%' : '-';
+  $('#parity-stats').innerHTML = [
+    { v: total ? `${odd} / ${even}` : '-', l: 'เลขคี่ / เลขคู่' },
+    { v: pct(odd), l: '% เลขคี่' },
+    { v: total ? `${low} / ${high}` : '-', l: 'ต่ำ(00-49) / สูง(50-99)' },
+    { v: pct(low), l: '% เลขต่ำ' },
+  ].map(t => `<div class="stat-tile"><div class="v">${esc(t.v)}</div><div class="l">${t.l}</div></div>`).join('');
+
+  const counts = Array(19).fill(0);
+  vals.forEach(v => { counts[+v[0] + +v[1]]++; });
+  const max = Math.max(1, ...counts);
+  $('#sum-bars').innerHTML = counts.map((c, s) => `
+    <div class="bar-wrap" title="ผลรวม ${s}: ออก ${c} ครั้ง">
+      ${c ? `<div class="cnt">${c}</div>` : ''}
+      <div class="bar" style="height:${c ? Math.max(4, c / max * 100) : 2}%"></div>
+      <small>${s}</small>
+    </div>`).join('');
 }
 
 function initHistory() {
@@ -302,22 +353,26 @@ function renderIndicators() {
   if (!HISTORY.length) { panel.innerHTML = '<p class="empty">ยังไม่มีข้อมูลผลรางวัลให้วิเคราะห์</p>'; $('#suggest-number').textContent = '--'; return; }
 
   if (currentTab === 'back2') {
-    const list = computeValueOverdue(HISTORY, EXTRACT.back2, BACK2_SPACE).slice(0, 10);
-    panel.innerHTML = tableHTML(['เลข', 'ค้างงวด', 'ออกแล้ว(ครั้ง)'], list.map(r => [r.value, r.gap, r.freq]));
-    $('#suggest-number').textContent = list[0].value;
+    const cold = computeValueOverdue(HISTORY, EXTRACT.back2, BACK2_SPACE);
+    const hot = [...cold].sort((a, b) => b.freq - a.freq || a.gap - b.gap);
+    const chip = (r, kind) => `<div class="chip"><b>${r.value}</b><small>${kind === 'cold' ? 'ค้าง ' + r.gap : 'ออก ' + r.freq}</small></div>`;
+    panel.innerHTML = `<div class="hc-cols">
+      <div class="hc-col"><h3 class="cold"><span class="dot cold"></span>เย็นสุด (ค้างงวด)</h3><div class="chip-list">${cold.slice(0, 8).map(r => chip(r, 'cold')).join('')}</div></div>
+      <div class="hc-col"><h3 class="hot"><span class="dot hot"></span>ร้อนสุด (ออกบ่อย)</h3><div class="chip-list">${hot.slice(0, 8).map(r => chip(r, 'hot')).join('')}</div></div>
+    </div>`;
+    $('#suggest-number').textContent = cold[0].value;
   } else {
     const posCount = POS_COUNT[currentTab];
-    const perPos = computeDigitOverdue(HISTORY, EXTRACT[currentTab], posCount);
+    const coldPerPos = computeDigitOverdue(HISTORY, EXTRACT[currentTab], posCount);
+    const hotPerPos = coldPerPos.map(list => [...list].sort((a, b) => b.freq - a.freq || a.gap - b.gap));
     const labels = POS_LABEL[currentTab];
-    panel.innerHTML = `<div class="pos-grid">${perPos.map((list, i) => `
-      <div class="pos-card"><h3>${labels[i]}</h3>${list.slice(0, 3).map(d => `<div class="d"><b>${d.digit}</b><small>ค้าง ${d.gap} / ออก ${d.freq}</small></div>`).join('')}</div>
-    `).join('')}</div>`;
-    $('#suggest-number').textContent = perPos.map(list => list[0].digit).join('');
+    panel.innerHTML = `<div class="pos-grid">${coldPerPos.map((cold, i) => { const hot = hotPerPos[i]; return `
+      <div class="pos-card"><h3>${labels[i]}</h3>
+        <div class="d cold"><span class="dot cold"></span><b>${cold[0].digit}</b><small>ค้าง ${cold[0].gap}</small></div>
+        <div class="d hot"><span class="dot hot"></span><b>${hot[0].digit}</b><small>ออก ${hot[0].freq}</small></div>
+      </div>`; }).join('')}</div>`;
+    $('#suggest-number').textContent = coldPerPos.map(list => list[0].digit).join('');
   }
-}
-function tableHTML(headers, rows) {
-  return `<div class="scrollx"><table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(r => `<tr>${r.map(c => `<td class="num">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function initIndicatorTabs() {
   $$('.tabs2 button').forEach(btn => btn.addEventListener('click', () => {
@@ -326,10 +381,28 @@ function initIndicatorTabs() {
   }));
 }
 
+/* ---------- แถบเมนูล่าง: ไฮไลต์แท็บตามส่วนที่กำลังดู ---------- */
+function initBottomNav() {
+  if (typeof IntersectionObserver === 'undefined') return;
+  const links = $$('.bottom-nav a');
+  const map = {};
+  links.forEach(a => { map[a.getAttribute('href').slice(1)] = a; });
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (!en.isIntersecting) return;
+      const a = map[en.target.id]; if (!a) return;
+      links.forEach(x => x.classList.remove('on'));
+      a.classList.add('on');
+    });
+  }, { rootMargin: '-40% 0px -50% 0px' });
+  Object.keys(map).forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
+}
+
 /* ---------- boot ---------- */
 initSettings();
 initTickets();
 initHistory();
 initIndicatorTabs();
+initBottomNav();
 renderHistory();
 renderIndicators();
