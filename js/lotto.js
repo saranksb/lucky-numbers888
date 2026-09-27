@@ -229,24 +229,8 @@ function renderHistory() {
       <td class="num">${esc(d.back2 || '-')}</td>`;
     body.appendChild(tr);
   });
-  setStatus('#hist-status', HISTORY.length ? `มีข้อมูล ${HISTORY.length} งวด` : 'ยังไม่มีข้อมูล — กด "ดึงงวดล่าสุด" หรือเพิ่มด้วยตนเองด้านล่าง');
+  setStatus('#hist-status', HISTORY.length ? `มีข้อมูล ${HISTORY.length} งวด` : 'ยังไม่มีข้อมูล — กรอกผลรางวัลด้วยตนเองด้านบน');
   renderTickets();
-}
-
-async function loadInitialHistory() {
-  setStatus('#hist-status', 'กำลังโหลดผลรางวัลล่าสุด…');
-  try { await fetchLatestDraw(); } catch (e) { /* ตกลงมาลองทีละงวดต่อ */ }
-  const dates = drawSeries(8);
-  let ok = 0, fail = 0;
-  for (const d of dates) {
-    try { await fetchDrawByDate(d); ok++; renderHistory(); }
-    catch (e) { fail++; }
-  }
-  if (ok === 0 && fail > 0) {
-    setStatus('#hist-status', 'ดึงข้อมูลจาก API ไม่สำเร็จ (อาจถูกบล็อกโดยเบราว์เซอร์/เครือข่าย) — ลองเปลี่ยน API base URL ด้านบน หรือเพิ่มผลย้อนหลังด้วยตนเอง');
-  } else {
-    renderHistory();
-  }
 }
 
 function initHistory() {
@@ -319,4 +303,3 @@ initHistory();
 initIndicatorTabs();
 renderHistory();
 renderIndicators();
-loadInitialHistory().then(renderIndicators);

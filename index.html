@@ -93,19 +93,6 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500}
 </div>
 
 <div class="block">
-  <h2>⚙️ ตั้งค่าแหล่งข้อมูล</h2>
-  <div class="field">
-    <label>API base URL (ผลรางวัลสลากฯ ย้อนหลัง)</label>
-    <input type="text" id="api-base">
-  </div>
-  <div class="actions-row">
-    <button class="btn small ghost" id="btn-reset-api">รีเซ็ตเป็นค่าเริ่มต้น</button>
-    <button class="btn small ghost" id="btn-clear-cache">ล้างแคชผลรางวัล</button>
-  </div>
-  <p class="status-line" id="api-status"></p>
-</div>
-
-<div class="block">
   <h2>🎟️ เลขที่เคยซื้อ</h2>
   <div class="row2">
     <div class="field" style="margin-bottom:0">
@@ -152,30 +139,31 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500}
 
 <div class="block">
   <h2>📜 สถิติผลรางวัลย้อนหลัง</h2>
-  <p class="status-line" id="hist-status">กำลังโหลด…</p>
-  <div class="scrollx">
+  <p class="sub" style="margin-bottom:12px">ยังไม่พบ API สาธารณะที่เสถียรสำหรับดึงผลสลากฯ อัตโนมัติ (ที่เคยลองมาปิดตัว/หาไม่เจอหมด) วิธีที่ชัวร์สุดตอนนี้คือ <b>กรอกผลรางวัลด้วยตนเอง</b> — ใช้เวลาไม่ถึงนาที เดือนละ 2 ครั้ง แล้วระบบจะจำไว้ในเครื่องตลอดไป</p>
+  <div class="row2">
+    <div class="field" style="margin-bottom:0"><label>งวดวันที่</label><input type="date" id="man-date"></div>
+    <div class="field" style="margin-bottom:0"><label>รางวัลที่ 1 (6 หลัก)</label><input type="text" id="man-p1" maxlength="6" inputmode="numeric"></div>
+  </div>
+  <div class="row3">
+    <div class="field" style="margin-bottom:0"><label>3 ตัวหน้า (คั่นด้วย ,)</label><input type="text" id="man-f3" placeholder="123,456"></div>
+    <div class="field" style="margin-bottom:0"><label>3 ตัวท้าย (คั่นด้วย ,)</label><input type="text" id="man-b3" placeholder="789,012"></div>
+    <div class="field" style="margin-bottom:0"><label>เลขท้าย 2 ตัว</label><input type="text" id="man-b2" maxlength="2" inputmode="numeric"></div>
+  </div>
+  <button class="btn" id="btn-manual-add">+ บันทึกผลงวดนี้</button>
+
+  <div class="scrollx" style="margin-top:16px">
     <table>
       <thead><tr><th>งวด</th><th>รางวัลที่ 1</th><th>3 ตัวหน้า</th><th>3 ตัวท้าย</th><th>เลขท้าย 2 ตัว</th></tr></thead>
       <tbody id="hist-body"></tbody>
     </table>
   </div>
-  <div class="actions-row">
-    <button class="btn small ghost" id="btn-refresh-latest">ดึงงวดล่าสุด</button>
-    <button class="btn small ghost" id="btn-load-more">โหลดย้อนหลังเพิ่ม</button>
-  </div>
+  <p class="status-line" id="hist-status"></p>
+
   <details>
-    <summary>+ เพิ่มผลรางวัลย้อนหลังด้วยตนเอง (เผื่อดึงจาก API ไม่ได้)</summary>
-    <div style="margin-top:10px">
-      <div class="row2">
-        <div class="field" style="margin-bottom:0"><label>งวดวันที่</label><input type="date" id="man-date"></div>
-        <div class="field" style="margin-bottom:0"><label>รางวัลที่ 1 (6 หลัก)</label><input type="text" id="man-p1" maxlength="6" inputmode="numeric"></div>
-      </div>
-      <div class="row3">
-        <div class="field" style="margin-bottom:0"><label>3 ตัวหน้า (คั่นด้วย ,)</label><input type="text" id="man-f3" placeholder="123,456"></div>
-        <div class="field" style="margin-bottom:0"><label>3 ตัวท้าย (คั่นด้วย ,)</label><input type="text" id="man-b3" placeholder="789,012"></div>
-        <div class="field" style="margin-bottom:0"><label>เลขท้าย 2 ตัว</label><input type="text" id="man-b2" maxlength="2" inputmode="numeric"></div>
-      </div>
-      <button class="btn small" id="btn-manual-add">บันทึกผลงวดนี้</button>
+    <summary>+ ลองดึงข้อมูลอัตโนมัติจาก API (อาจใช้ไม่ได้ ขึ้นกับว่ามี API ที่ยังทำงานอยู่ไหม)</summary>
+    <div style="margin-top:10px" class="actions-row">
+      <button class="btn small ghost" id="btn-refresh-latest">ดึงงวดล่าสุด</button>
+      <button class="btn small ghost" id="btn-load-more">โหลดย้อนหลังเพิ่ม</button>
     </div>
   </details>
 </div>
@@ -193,6 +181,21 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500}
   <div class="suggest" id="suggest-number">--</div>
   <p class="foot-note">เลขแนะนำจากทฤษฎี (ไม่ใช่การพยากรณ์จริง) — สุ่มใหม่ได้เรื่อยๆ เพื่อความสนุก</p>
 </div>
+
+<details class="block" style="padding:14px 18px">
+  <summary>⚙️ ตั้งค่าขั้นสูง: API base URL สำหรับดึงผลอัตโนมัติ</summary>
+  <div style="margin-top:12px">
+    <div class="field">
+      <label>API base URL</label>
+      <input type="text" id="api-base">
+    </div>
+    <div class="actions-row">
+      <button class="btn small ghost" id="btn-reset-api">รีเซ็ตเป็นค่าเริ่มต้น</button>
+      <button class="btn small ghost" id="btn-clear-cache">ล้างแคชผลรางวัล</button>
+    </div>
+    <p class="status-line" id="api-status"></p>
+  </div>
+</details>
 
 <script src="js/lotto.js"></script>
 </body>
