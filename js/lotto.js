@@ -97,6 +97,16 @@ function historyFromCache() {
   return Object.values(cache).sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// เติมข้อมูลตั้งต้นให้อัตโนมัติตอนเปิดแอปครั้งแรกบนเครื่อง/เบราว์เซอร์ใหม่ (ไม่ทับข้อมูลที่มีอยู่แล้ว)
+function seedIfEmpty() {
+  const cache = readJSON(LS.cache, {});
+  if (Object.keys(cache).length > 0) return;
+  if (typeof SEED_DRAWS === 'undefined' || !SEED_DRAWS.length) return;
+  const seeded = {};
+  SEED_DRAWS.forEach(d => { seeded[d.date] = d; });
+  writeJSON(LS.cache, seeded);
+}
+
 /* ---------- คำนวณตัวชี้วัด "ค้างงวด" (Gambler's Fallacy) ---------- */
 function computeValueOverdue(history, extractor, space) {
   const lastSeen = {}, freq = {};
@@ -492,6 +502,7 @@ function initBottomNav() {
 }
 
 /* ---------- boot ---------- */
+seedIfEmpty();
 initSettings();
 initTickets();
 initHistory();
