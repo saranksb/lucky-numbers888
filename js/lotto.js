@@ -34,6 +34,10 @@ function prevDrawDate(d) {
   if (d.getDate() === 16) return new Date(d.getFullYear(), d.getMonth(), 1);
   return new Date(d.getFullYear(), d.getMonth() - 1, 16);
 }
+function nextDrawDate(d) {
+  if (d.getDate() === 1) return new Date(d.getFullYear(), d.getMonth(), 16);
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1);
+}
 function drawSeries(count, fromDate) {
   const out = []; let d = latestDrawOnOrBefore(fromDate || new Date());
   for (let i = 0; i < count; i++) { out.push(new Date(d)); d = prevDrawDate(d); }
@@ -394,7 +398,9 @@ function renderForecast() {
   }
   const perPos = computePositionalModel(HISTORY, opts);
   const sampleSize = HISTORY.reduce((sum, d) => sum + pooledPrizeNumbers(d, opts).length, 0);
-  setStatus('#forecast-status', `อิงจาก ${HISTORY.length} งวด (รวม ${sampleSize} ชุดตัวเลข 6 หลักตามตัวเลือกที่ติ๊กไว้)`);
+  const latest = new Date(HISTORY[HISTORY.length - 1].date + 'T00:00');
+  const target = fmtTH(fmtISO(nextDrawDate(latest)));
+  setStatus('#forecast-status', `⏭️ ประมาณการสำหรับงวดถัดไป (${target}) — อิงจาก ${HISTORY.length} งวด (รวม ${sampleSize} ชุดตัวเลข 6 หลักตามตัวเลือกที่ติ๊กไว้)`);
   const labels = ['หลัก 1', 'หลัก 2', 'หลัก 3', 'หลัก 4', 'หลัก 5', 'หลัก 6'];
   $('#forecast-pos-grid').innerHTML = perPos.map((list, i) => `
     <div class="pos-card"><h3>${labels[i]}</h3>
