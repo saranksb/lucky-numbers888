@@ -368,6 +368,8 @@ function pooledPrizeNumbers(draw, opts) {
   if (opts.near && Array.isArray(draw.prizeFirstNear)) arr = arr.concat(draw.prizeFirstNear);
   if (opts.p2 && Array.isArray(draw.prize2)) arr = arr.concat(draw.prize2);
   if (opts.p3 && Array.isArray(draw.prize3)) arr = arr.concat(draw.prize3);
+  if (opts.p4 && Array.isArray(draw.prize4)) arr = arr.concat(draw.prize4);
+  if (opts.p5 && Array.isArray(draw.prize5)) arr = arr.concat(draw.prize5);
   return arr.filter(s => s && s.length === 6);
 }
 function computePositionalModel(history, opts) {
@@ -400,7 +402,7 @@ function buildTop10(perPos) {
   return combos.slice(0, 10).map(c => ({ number: c.digits.join(''), score: c.score, rel: maxScore ? c.score / maxScore * 100 : 0 }));
 }
 function renderForecast() {
-  const opts = { near: $('#fc-near').checked, p2: $('#fc-p2').checked, p3: $('#fc-p3').checked, decay: $('#fc-decay').checked };
+  const opts = { near: $('#fc-near').checked, p2: $('#fc-p2').checked, p3: $('#fc-p3').checked, p4: $('#fc-p4').checked, p5: $('#fc-p5').checked, decay: $('#fc-decay').checked };
   if (!HISTORY.length) {
     setStatus('#forecast-status', 'ยังไม่มีข้อมูลผลรางวัลให้คำนวณ');
     $('#forecast-pos-grid').innerHTML = ''; $('#forecast-top10').innerHTML = '';
@@ -423,7 +425,7 @@ function renderForecast() {
       <span class="sc">${c.rel.toFixed(0)}%</span></div>`).join('');
 }
 function initForecast() {
-  ['#fc-near', '#fc-p2', '#fc-p3', '#fc-decay'].forEach(sel => $(sel).addEventListener('change', renderForecast));
+  ['#fc-near', '#fc-p2', '#fc-p3', '#fc-p4', '#fc-p5', '#fc-decay'].forEach(sel => $(sel).addEventListener('change', renderForecast));
 }
 
 /* ---------- เพิ่มรางวัลข้างเคียง/รางวัลที่ 2-3 ให้งวดที่มีอยู่แล้ว ---------- */
@@ -439,12 +441,14 @@ function initEnrich() {
     const cache = readJSON(LS.cache, {});
     const draw = cache[date];
     if (!date || !draw) return alert('ยังไม่มีงวดให้เลือก (ต้องกรอกผลรางวัลที่ 1 ของงวดนั้นก่อนในฟอร์มด้านบน)');
-    const parseList = (val, len) => val.split(',').map(s => onlyDigits(s)).filter(s => s.length === len);
+    const parseList = (val, len) => val.split(/[\s,]+/).map(s => onlyDigits(s)).filter(s => s.length === len);
     draw.prizeFirstNear = parseList($('#enrich-near').value, 6);
     draw.prize2 = parseList($('#enrich-p2').value, 6);
     draw.prize3 = parseList($('#enrich-p3').value, 6);
+    draw.prize4 = parseList($('#enrich-p4').value, 6);
+    draw.prize5 = parseList($('#enrich-p5').value, 6);
     cache[date] = draw; writeJSON(LS.cache, cache);
-    setStatus('#enrich-status', `บันทึกแล้ว: ข้างเคียง ${draw.prizeFirstNear.length}, รางวัลที่2 ${draw.prize2.length}, รางวัลที่3 ${draw.prize3.length}`);
+    setStatus('#enrich-status', `บันทึกแล้ว: ข้างเคียง ${draw.prizeFirstNear.length}, รางวัลที่2 ${draw.prize2.length}, รางวัลที่3 ${draw.prize3.length}, รางวัลที่4 ${draw.prize4.length}, รางวัลที่5 ${draw.prize5.length}`);
     renderHistory(); renderForecast();
   });
 }
