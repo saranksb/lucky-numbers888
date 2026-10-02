@@ -26,4 +26,5 @@ const SEED_DRAWS = [
   { date: '2026-08-16', prizeFirst: '004615', front3: ['731', '429'], back3: ['937', '094'], back2: '53' },
   { date: '2026-09-01', prizeFirst: '417212', front3: ['257', '346'], back3: ['136', '740'], back2: '04' },
   { date: '2026-09-16', prizeFirst: '730640', front3: ['060', '521'], back3: ['266', '041'], back2: '64' },
+  { date: '2026-10-01', prizeFirst: '402701', front3: ['791', '912'], back3: ['058', '396'], back2: '70', prizeFirstNear: ['402700', '402702'] },
 ];

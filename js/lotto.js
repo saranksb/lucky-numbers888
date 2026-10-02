@@ -97,14 +97,14 @@ function historyFromCache() {
   return Object.values(cache).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-// เติมข้อมูลตั้งต้นให้อัตโนมัติตอนเปิดแอปครั้งแรกบนเครื่อง/เบราว์เซอร์ใหม่ (ไม่ทับข้อมูลที่มีอยู่แล้ว)
-function seedIfEmpty() {
-  const cache = readJSON(LS.cache, {});
-  if (Object.keys(cache).length > 0) return;
+// เติมงวดที่ฝังมากับแอปแต่ยังไม่มีในเครื่องนี้ (ไม่ทับงวดที่มีอยู่แล้ว) - รันทุกครั้งที่เปิดแอป
+// เพื่อให้งวดใหม่ที่เพิ่มเข้า seed-data.js ภายหลังไปถึงทุกเครื่อง ไม่ใช่แค่ตอนเปิดแอปครั้งแรก
+function seedMissing() {
   if (typeof SEED_DRAWS === 'undefined' || !SEED_DRAWS.length) return;
-  const seeded = {};
-  SEED_DRAWS.forEach(d => { seeded[d.date] = d; });
-  writeJSON(LS.cache, seeded);
+  const cache = readJSON(LS.cache, {});
+  let added = 0;
+  SEED_DRAWS.forEach(d => { if (!cache[d.date]) { cache[d.date] = d; added++; } });
+  if (added) writeJSON(LS.cache, cache);
 }
 
 /* ---------- คำนวณตัวชี้วัด "ค้างงวด" (Gambler's Fallacy) ---------- */
@@ -502,7 +502,7 @@ function initBottomNav() {
 }
 
 /* ---------- boot ---------- */
-seedIfEmpty();
+seedMissing();
 initSettings();
 initTickets();
 initHistory();
