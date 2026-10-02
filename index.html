@@ -32,7 +32,6 @@
   }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
 html,body{background:var(--bg)}
 body{margin:0 auto;max-width:640px;color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;
   padding:calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 84px);-webkit-font-smoothing:antialiased}
@@ -44,7 +43,9 @@ h1,.serif{font-family:var(--serif);letter-spacing:-.005em}
 h1{font-size:26px;font-weight:600;margin:0 0 4px}
 h2{font-size:17px;font-weight:600;margin:0 0 2px}
 p.sub{color:var(--ink2);font-size:13px;margin:0 0 18px}
-.block{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);scroll-margin-top:16px}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.tab-panel{animation:fadein .15s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
 .block h2{margin-bottom:10px}
 .callout{display:flex;gap:10px;align-items:flex-start;background:var(--brand-soft);border:1px solid var(--brand);border-radius:14px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--ink)}
 .callout b{display:block;margin-bottom:2px}
@@ -126,10 +127,10 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
 /* thumb-zone bottom nav */
 .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   display:flex;padding:6px 6px calc(env(safe-area-inset-bottom) + 6px);box-shadow:0 -4px 16px -8px rgba(0,0,0,.15)}
-.bottom-nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;min-height:52px;
-  border-radius:12px;text-decoration:none;color:var(--ink3);font-size:11px;font-weight:500}
-.bottom-nav a .ic{font-size:20px;line-height:1}
-.bottom-nav a.on,.bottom-nav a:active{color:var(--brand-ink);background:var(--brand-soft)}
+.bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;min-height:52px;
+  border:0;background:none;border-radius:12px;color:var(--ink3);font-size:10.5px;font-weight:500;white-space:nowrap}
+.bottom-nav button .ic{font-size:20px;line-height:1}
+.bottom-nav button.on{color:var(--brand-ink);background:var(--brand-soft)}
 </style>
 </head>
 <body>
@@ -144,7 +145,8 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
   </div>
 </div>
 
-<div class="block" id="sec-tickets">
+<section class="tab-panel" data-panel="tickets">
+<div class="block">
   <h2>🎟️ เลขที่เคยซื้อ</h2>
   <div class="stat-row" id="tk-stats"></div>
   <div class="row2">
@@ -189,8 +191,10 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
     </label>
   </div>
 </div>
+</section>
 
-<div class="block" id="sec-history">
+<section class="tab-panel" data-panel="history" hidden>
+<div class="block">
   <h2>📜 สถิติผลรางวัลย้อนหลัง</h2>
   <p class="sub" style="margin-bottom:12px">ยังไม่พบ API สาธารณะที่เสถียรสำหรับดึงผลสลากฯ อัตโนมัติ (ที่เคยลองมาปิดตัว/หาไม่เจอหมด) วิธีที่ชัวร์สุดตอนนี้คือ <b>กรอกผลรางวัลด้วยตนเอง</b> — ใช้เวลาไม่ถึงนาที เดือนละ 2 ครั้ง แล้วระบบจะจำไว้ในเครื่องตลอดไป</p>
   <div class="row2">
@@ -241,7 +245,9 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
     </div>
   </details>
 </div>
+</section>
 
+<section class="tab-panel" data-panel="forecast" hidden>
 <div class="block">
   <h2>🔮 พยากรณ์รางวัลที่ 1 (โมเดลความถี่รายหลัก)</h2>
   <p class="sub" style="margin-bottom:10px">คำนวณ % จาก "ส่วนแบ่งความถี่ในอดีต" ของแต่ละหลัก ไม่ใช่ความน่าจะเป็นจริงของงวดถัดไป — แต่ละงวดสุ่มเป็นอิสระ 100% ทำไว้เป็นแบบฝึกหัดสถิติ/โปรเจกต์วิจัยเท่านั้น</p>
@@ -277,8 +283,10 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
   <div class="stat-row" id="backtest-stats"></div>
   <p class="foot-note">ถ้าโมเดลทายได้ดีกว่าสุ่มจริง อัตราถูกระดับหลักควรสูงกว่า 30% อย่างมีนัยสำคัญ และควรเจอ "ถูกเป๊ะทั้ง 6 หลัก" บ่อยกว่า ~0.001% ต่อครั้งมาก — ถ้าตัวเลขใกล้ค่าคาดหวังโดยบังเอิญ แปลว่าโมเดลนี้ไม่มีความสามารถพยากรณ์จริง ตามที่ควรจะเป็น เพราะแต่ละงวดสุ่มเป็นอิสระ 100%</p>
 </div>
+</section>
 
-<div class="block" id="sec-stats">
+<section class="tab-panel" data-panel="stats" hidden>
+<div class="block">
   <h2>📊 ตัวชี้วัด "เลขค้างงวด" (Gambler's Fallacy)</h2>
   <p class="sub" style="margin-bottom:12px"><span class="dot cold"></span>เย็น = ไม่ได้ออกมานาน (ค้างงวด) &nbsp; <span class="dot hot"></span>ร้อน = ออกบ่อยในประวัติ — ทั้งคู่ไม่ได้บอกโอกาสในอนาคตจริงๆ เลย</p>
   <div class="tabs2">
@@ -298,8 +306,10 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
   <p class="sub" style="margin:4px 0 2px">ผลรวมเลข 2 หลัก (0-18) ที่เคยออก — แท่งสูง = ออกบ่อย</p>
   <div class="bars" id="sum-bars"></div>
 </div>
+</section>
 
-<details class="block" style="padding:14px 18px" id="sec-settings">
+<section class="tab-panel" data-panel="settings" hidden>
+<details class="block" open style="padding:14px 18px">
   <summary>⚙️ ตั้งค่าขั้นสูง: API base URL สำหรับดึงผลอัตโนมัติ</summary>
   <div style="margin-top:12px">
     <div class="field">
@@ -313,12 +323,14 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
     <p class="status-line" id="api-status"></p>
   </div>
 </details>
+</section>
 
 <nav class="bottom-nav">
-  <a href="#sec-tickets"><span class="ic">🎟️</span>ซื้อ</a>
-  <a href="#sec-history"><span class="ic">📜</span>ผลย้อนหลัง</a>
-  <a href="#sec-stats"><span class="ic">📊</span>สถิติ</a>
-  <a href="#sec-settings"><span class="ic">⚙️</span>ตั้งค่า</a>
+  <button data-panel="tickets"><span class="ic">🎟️</span>ซื้อ</button>
+  <button data-panel="history"><span class="ic">📜</span>ผล</button>
+  <button data-panel="forecast"><span class="ic">🔮</span>พยากรณ์</button>
+  <button data-panel="stats"><span class="ic">📊</span>สถิติ</button>
+  <button data-panel="settings"><span class="ic">⚙️</span>ตั้งค่า</button>
 </nav>
 
 <script src="js/seed-data.js"></script>

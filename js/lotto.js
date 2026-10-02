@@ -610,21 +610,15 @@ function initIndicatorTabs() {
   }));
 }
 
-/* ---------- แถบเมนูล่าง: ไฮไลต์แท็บตามส่วนที่กำลังดู ---------- */
+/* ---------- แถบเมนูล่าง: สลับแสดงทีละหน้า (ไม่ใช่เลื่อนยาว) ---------- */
+function showPanel(name) {
+  $$('.tab-panel').forEach(p => { p.hidden = p.dataset.panel !== name; });
+  $$('.bottom-nav button').forEach(b => b.classList.toggle('on', b.dataset.panel === name));
+  window.scrollTo(0, 0);
+}
 function initBottomNav() {
-  if (typeof IntersectionObserver === 'undefined') return;
-  const links = $$('.bottom-nav a');
-  const map = {};
-  links.forEach(a => { map[a.getAttribute('href').slice(1)] = a; });
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(en => {
-      if (!en.isIntersecting) return;
-      const a = map[en.target.id]; if (!a) return;
-      links.forEach(x => x.classList.remove('on'));
-      a.classList.add('on');
-    });
-  }, { rootMargin: '-40% 0px -50% 0px' });
-  Object.keys(map).forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
+  $$('.bottom-nav button').forEach(b => b.addEventListener('click', () => showPanel(b.dataset.panel)));
+  showPanel('tickets');
 }
 
 /* ---------- boot ---------- */
