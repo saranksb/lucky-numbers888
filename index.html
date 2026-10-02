@@ -259,6 +259,25 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
   <div id="forecast-top10"></div>
 </div>
 
+<div class="block">
+  <h2>🧪 ทดสอบทางสถิติ</h2>
+  <p class="sub" style="margin-bottom:12px">ใช้ชุดข้อมูลเดียวกับตัวเลือก pool ในส่วนพยากรณ์ด้านบน — ถ้าติ๊กเปลี่ยนตรงนั้น ผลตรงนี้จะคำนวณใหม่ตามด้วย</p>
+
+  <h3 style="font-size:14px;margin:0 0 8px">Chi-square goodness-of-fit <small style="font-weight:400;color:var(--ink3)">(เทียบกับสมมติฐานว่าแต่ละหลักสุ่มสม่ำเสมอ 10% ต่อตัวเลข)</small></h3>
+  <div class="scrollx">
+    <table>
+      <thead><tr><th>ตำแหน่ง</th><th>N</th><th>χ²</th><th>p-value</th><th>ผล</th></tr></thead>
+      <tbody id="chi-body"></tbody>
+    </table>
+  </div>
+  <p class="status-line" id="chi-combined"></p>
+
+  <h3 style="font-size:14px;margin:20px 0 8px">Backtest <small style="font-weight:400;color:var(--ink3)">(ย้อนทดสอบโมเดลกับงวดจริงที่ผ่านมา)</small></h3>
+  <p class="status-line" id="backtest-status"></p>
+  <div class="stat-row" id="backtest-stats"></div>
+  <p class="foot-note">ถ้าโมเดลทายได้ดีกว่าสุ่มจริง อัตราถูกระดับหลักควรสูงกว่า 30% อย่างมีนัยสำคัญ และควรเจอ "ถูกเป๊ะทั้ง 6 หลัก" บ่อยกว่า ~0.001% ต่อครั้งมาก — ถ้าตัวเลขใกล้ค่าคาดหวังโดยบังเอิญ แปลว่าโมเดลนี้ไม่มีความสามารถพยากรณ์จริง ตามที่ควรจะเป็น เพราะแต่ละงวดสุ่มเป็นอิสระ 100%</p>
+</div>
+
 <div class="block" id="sec-stats">
   <h2>📊 ตัวชี้วัด "เลขค้างงวด" (Gambler's Fallacy)</h2>
   <p class="sub" style="margin-bottom:12px"><span class="dot cold"></span>เย็น = ไม่ได้ออกมานาน (ค้างงวด) &nbsp; <span class="dot hot"></span>ร้อน = ออกบ่อยในประวัติ — ทั้งคู่ไม่ได้บอกโอกาสในอนาคตจริงๆ เลย</p>

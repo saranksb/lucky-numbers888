@@ -272,6 +272,7 @@ function renderHistory() {
   renderExtraStats();
   populateEnrichDates();
   renderForecast();
+  renderStatTests();
 }
 
 /* ---------- สถิติเลขท้าย 2 ตัวเพิ่มเติม: คู่/คี่, สูง/ต่ำ, ผลรวม ---------- */
@@ -425,7 +426,128 @@ function renderForecast() {
       <span class="sc">${c.rel.toFixed(0)}%</span></div>`).join('');
 }
 function initForecast() {
-  ['#fc-near', '#fc-p2', '#fc-p3', '#fc-p4', '#fc-p5', '#fc-decay'].forEach(sel => $(sel).addEventListener('change', renderForecast));
+  ['#fc-near', '#fc-p2', '#fc-p3', '#fc-p4', '#fc-p5', '#fc-decay'].forEach(sel => $(sel).addEventListener('change', () => { renderForecast(); renderStatTests(); }));
+}
+
+/* ---------- สถิติเชิงลึก: Chi-square goodness-of-fit + Backtest ---------- */
+// gammln/gammp/gammq ตามสูตรมาตรฐาน (Numerical Recipes) - ใช้คำนวณ p-value ของ chi-square แบบไม่ต้องพึ่งไลบรารีภายนอก
+function gammaln(x) {
+  const g = 7;
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - gammaln(1 - x);
+  x -= 1;
+  let a = c[0];
+  const t = x + g + 0.5;
+  for (let i = 1; i < g + 2; i++) a += c[i] / (x + i);
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+function lowerGammaP(s, x) { // regularized lower incomplete gamma, series form (x < s+1)
+  if (x <= 0) return 0;
+  let sum = 1 / s, term = sum;
+  for (let n = 1; n < 300; n++) {
+    term *= x / (s + n);
+    sum += term;
+    if (Math.abs(term) < Math.abs(sum) * 1e-15) break;
+  }
+  return sum * Math.exp(-x + s * Math.log(x) - gammaln(s));
+}
+function upperGammaQ(s, x) { // regularized upper incomplete gamma, continued fraction (x >= s+1)
+  const tiny = 1e-30;
+  let b = x + 1 - s, c = 1 / tiny, d = 1 / b, h = d;
+  for (let i = 1; i < 300; i++) {
+    const an = -i * (i - s);
+    b += 2;
+    d = an * d + b; if (Math.abs(d) < tiny) d = tiny;
+    c = b + an / c; if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d;
+    const del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < 1e-15) break;
+  }
+  return Math.exp(-x + s * Math.log(x) - gammaln(s)) * h;
+}
+function chiSquarePValue(chiSq, df) {
+  if (chiSq <= 0) return 1;
+  const s = df / 2, x = chiSq / 2;
+  return x < s + 1 ? 1 - lowerGammaP(s, x) : upperGammaQ(s, x);
+}
+function verdictLabel(p) {
+  if (p < 0.01) return 'มีนัยสำคัญที่ 1%';
+  if (p < 0.05) return 'มีนัยสำคัญที่ 5%';
+  return 'ไม่มีนัยสำคัญ (เหมือนสุ่ม)';
+}
+
+function computeChiSquareTests(history, opts) {
+  const perPos = [];
+  let combinedChiSq = 0, combinedDf = 0;
+  for (let p = 0; p < 6; p++) {
+    const counts = Array(10).fill(0);
+    history.forEach(draw => pooledPrizeNumbers(draw, opts).forEach(numStr => counts[+numStr[p]]++));
+    const n = counts.reduce((a, b) => a + b, 0);
+    const expected = n / 10;
+    const chiSq = n ? counts.reduce((sum, o) => sum + (o - expected) ** 2 / expected, 0) : 0;
+    const pVal = n ? chiSquarePValue(chiSq, 9) : 1;
+    perPos.push({ n, chiSq, p: pVal, lowExpected: expected < 5 });
+    combinedChiSq += chiSq; combinedDf += 9;
+  }
+  const combinedP = chiSquarePValue(combinedChiSq, combinedDf);
+  return { perPos, combined: { chiSq: combinedChiSq, df: combinedDf, p: combinedP } };
+}
+
+function computeBacktest(history, opts, minTrain) {
+  minTrain = minTrain || 5;
+  let tested = 0, positionalHits = 0, positionalTrials = 0, fullHits = 0;
+  for (let i = minTrain; i < history.length; i++) {
+    const train = history.slice(0, i);
+    const actual = history[i].prizeFirst;
+    if (!actual || actual.length !== 6) continue;
+    const perPos = computePositionalModel(train, opts);
+    for (let p = 0; p < 6; p++) {
+      const highDigits = perPos[p].filter(r => r.tier === 'high').map(r => r.digit);
+      if (highDigits.includes(actual[p])) positionalHits++;
+      positionalTrials++;
+    }
+    const top10 = buildTop10(perPos);
+    if (top10.some(c => c.number === actual)) fullHits++;
+    tested++;
+  }
+  const rate = positionalTrials ? positionalHits / positionalTrials : 0;
+  const expected = 0.3; // top-3 ใน 10 หลัก = คาดหวัง 30% โดยบังเอิญ
+  const z = positionalTrials ? (rate - expected) / Math.sqrt(expected * (1 - expected) / positionalTrials) : 0;
+  const pVal = positionalTrials ? chiSquarePValue(z * z, 1) : 1;
+  return { tested, positionalHits, positionalTrials, rate, expected, fullHits, z, p: pVal };
+}
+
+function renderStatTests() {
+  const opts = { near: $('#fc-near').checked, p2: $('#fc-p2').checked, p3: $('#fc-p3').checked, p4: $('#fc-p4').checked, p5: $('#fc-p5').checked, decay: $('#fc-decay').checked };
+  if (!HISTORY.length) {
+    $('#chi-body').innerHTML = ''; setStatus('#chi-combined', 'ยังไม่มีข้อมูลให้ทดสอบ');
+    $('#backtest-stats').innerHTML = ''; setStatus('#backtest-status', '');
+    return;
+  }
+  const labels = ['หลัก 1', 'หลัก 2', 'หลัก 3', 'หลัก 4', 'หลัก 5', 'หลัก 6'];
+  const chi = computeChiSquareTests(HISTORY, opts);
+  $('#chi-body').innerHTML = chi.perPos.map((r, i) => `
+    <tr><td>${labels[i]}</td><td class="num">${r.n}</td><td class="num">${r.chiSq.toFixed(2)}</td>
+      <td class="num">${r.p.toFixed(3)}${r.lowExpected ? ' <small>(N น้อย)</small>' : ''}</td><td>${verdictLabel(r.p)}</td></tr>`).join('');
+  setStatus('#chi-combined', `รวมทุกตำแหน่ง: χ²=${chi.combined.chiSq.toFixed(2)}, df=${chi.combined.df}, p=${chi.combined.p.toFixed(3)} — ${verdictLabel(chi.combined.p)}`);
+
+  const minTrain = 5;
+  if (HISTORY.length <= minTrain) {
+    setStatus('#backtest-status', `ข้อมูลยังน้อยเกินไปสำหรับ backtest (ต้องมีอย่างน้อย ${minTrain + 1} งวด ตอนนี้มี ${HISTORY.length})`);
+    $('#backtest-stats').innerHTML = '';
+    return;
+  }
+  const bt = computeBacktest(HISTORY, opts, minTrain);
+  setStatus('#backtest-status', `ทดสอบกับ ${bt.tested} งวด (เทรนจากงวดก่อนหน้าแต่ละครั้ง) — p=${bt.p.toFixed(3)} ${verdictLabel(bt.p)}`);
+  const tiles = [
+    { v: bt.tested, l: 'งวดที่ทดสอบ' },
+    { v: (bt.rate * 100).toFixed(1) + '%', l: 'อัตราถูกระดับหลัก (คาดหวัง 30%)' },
+    { v: bt.fullHits, l: 'ถูกเป๊ะทั้ง 6 หลัก' },
+    { v: bt.z.toFixed(2), l: 'z-score' },
+  ];
+  $('#backtest-stats').innerHTML = tiles.map(t => `<div class="stat-tile"><div class="v">${esc(t.v)}</div><div class="l">${t.l}</div></div>`).join('');
 }
 
 /* ---------- เพิ่มรางวัลข้างเคียง/รางวัลที่ 2-3 ให้งวดที่มีอยู่แล้ว ---------- */
