@@ -5,7 +5,6 @@
 // เว็บ glo.or.th render ด้วย JS และไม่เปิด CORS ให้หน้าอื่นดึงข้อมูลข้ามโดเมน)
 const DEFAULT_API_BASE = 'https://lottery.api.rayriffy.com';
 const LS = {
-  tickets: 'lotto_tickets_v1',
   cache: 'lotto_results_cache_v1',
   apiBase: 'lotto_api_base_v1',
 };
@@ -163,8 +162,8 @@ function initSettings() {
 function setStatus(sel, msg) { const el = $(sel); if (el) { el.textContent = msg; } }
 
 /* ---------- render: เลขที่เคยซื้อ ---------- */
-function getTickets() { return readJSON(LS.tickets, []); }
-function saveTickets(list) { writeJSON(LS.tickets, list); }
+function getTickets() { return readJSON(ticketsKey(), []); }
+function saveTickets(list) { writeJSON(ticketsKey(), list); }
 const TYPE_LABEL = { back2: 'ท้าย 2 ตัว', front3: '3 ตัวหน้า', back3: '3 ตัวท้าย', prizeFirst: 'รางวัลที่ 1' };
 const TYPE_MAXLEN = { back2: 2, front3: 3, back3: 3, prizeFirst: 6 };
 
@@ -621,14 +620,66 @@ function initBottomNav() {
   showPanel('tickets');
 }
 
+/* ---------- ระบบล็อกอินแบบง่าย (จำกัด USERS ใน js/users.js) ---------- */
+// หมายเหตุ: นี่คือเว็บ static ไม่มี server เช็ครหัสผ่าน - การันตีได้แค่กันคนทั่วไปเข้ามากดเล่นเฉยๆ
+// ไม่ใช่ความปลอดภัยจริง (ใครดู view-source ก็เห็นรหัสผ่านทั้งหมดใน js/users.js ได้)
+const AUTH_KEY = 'lotto_auth_user';
+let CURRENT_USER = null;
+function ticketsKey() { return 'lotto_tickets_v1_' + (CURRENT_USER || 'guest'); }
+function migrateOldTickets() {
+  const old = localStorage.getItem('lotto_tickets_v1');
+  if (old && !localStorage.getItem(ticketsKey())) {
+    localStorage.setItem(ticketsKey(), old);
+    localStorage.removeItem('lotto_tickets_v1');
+  }
+}
+function checkLogin(id, pw) { return typeof USERS !== 'undefined' && USERS.some(u => u.id === id && u.password === pw); }
+function revealApp(id) {
+  CURRENT_USER = id;
+  migrateOldTickets();
+  document.getElementById('login-screen').hidden = true;
+  document.getElementById('app-root').hidden = false;
+  setStatus('#account-status', `เข้าสู่ระบบในชื่อ: ${id}`);
+  startApp();
+}
+function initAuth() {
+  const saved = localStorage.getItem(AUTH_KEY);
+  if (saved && typeof USERS !== 'undefined' && USERS.some(u => u.id === saved)) {
+    revealApp(saved);
+    return;
+  }
+  $('#login-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const id = $('#login-id').value.trim();
+    const pw = $('#login-pw').value;
+    if (checkLogin(id, pw)) {
+      localStorage.setItem(AUTH_KEY, id);
+      revealApp(id);
+    } else {
+      setStatus('#login-error', 'ID หรือรหัสผ่านไม่ถูกต้อง');
+    }
+  });
+}
+function initLogout() {
+  $('#btn-logout').addEventListener('click', () => {
+    if (!confirm('ออกจากระบบ?')) return;
+    localStorage.removeItem(AUTH_KEY);
+    location.reload();
+  });
+}
+
 /* ---------- boot ---------- */
-seedMissing();
-initSettings();
-initTickets();
-initHistory();
-initIndicatorTabs();
-initForecast();
-initEnrich();
-initBottomNav();
-renderHistory();
-renderIndicators();
+function startApp() {
+  seedMissing();
+  initSettings();
+  initTickets();
+  initHistory();
+  initIndicatorTabs();
+  initForecast();
+  initEnrich();
+  initBottomNav();
+  initLogout();
+  renderHistory();
+  renderIndicators();
+}
+initAuth();

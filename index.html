@@ -124,6 +124,10 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
 .top10-row .bar-fill{height:100%;background:var(--gold);border-radius:4px}
 .top10-row .sc{width:38px;text-align:right;font-size:11px;color:var(--ink3);flex:none}
 
+/* หน้าเข้าสู่ระบบ */
+#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg);z-index:30}
+.login-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px 24px;box-shadow:var(--shadow)}
+
 /* thumb-zone bottom nav */
 .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   display:flex;padding:6px 6px calc(env(safe-area-inset-bottom) + 6px);box-shadow:0 -4px 16px -8px rgba(0,0,0,.15)}
@@ -134,6 +138,22 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
 </style>
 </head>
 <body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div style="font-size:40px;text-align:center;margin-bottom:6px">🔮</div>
+    <h1 style="text-align:center;font-size:22px">เลขมงคล</h1>
+    <p class="sub" style="text-align:center">เข้าสู่ระบบด้วย ID ที่ได้รับ</p>
+    <form id="login-form">
+      <div class="field"><label>ID</label><input type="text" id="login-id" autocomplete="username" required></div>
+      <div class="field"><label>รหัสผ่าน</label><input type="password" id="login-pw" autocomplete="current-password" required></div>
+      <button class="btn" type="submit">เข้าสู่ระบบ</button>
+      <p class="status-line" id="login-error" style="color:var(--hot);min-height:16px"></p>
+    </form>
+  </div>
+</div>
+
+<div id="app-root" hidden>
 
 <h1>🔮 เลขมงคล (สนุกๆ)</h1>
 <p class="sub">เครื่องมือทดลองใช้ทฤษฎี <b>Gambler's Fallacy</b> เพื่อความบันเทิง — เก็บเลขที่เคยซื้อ ดูสถิติงวดที่ผ่านมา และดูตัวชี้วัด "เลขค้างงวด"</p>
@@ -309,6 +329,12 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
 </section>
 
 <section class="tab-panel" data-panel="settings" hidden>
+<div class="block">
+  <h2>👤 บัญชีผู้ใช้</h2>
+  <p class="status-line" id="account-status"></p>
+  <button class="btn small ghost" id="btn-logout">ออกจากระบบ</button>
+</div>
+
 <details class="block" open style="padding:14px 18px">
   <summary>⚙️ ตั้งค่าขั้นสูง: API base URL สำหรับดึงผลอัตโนมัติ</summary>
   <div style="margin-top:12px">
@@ -333,6 +359,9 @@ summary{cursor:pointer;font-size:13px;color:var(--brand-ink);font-weight:500;pad
   <button data-panel="settings"><span class="ic">⚙️</span>ตั้งค่า</button>
 </nav>
 
+</div>
+
+<script src="js/users.js"></script>
 <script src="js/seed-data.js"></script>
 <script src="js/lotto.js"></script>
 </body>
