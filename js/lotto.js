@@ -642,12 +642,21 @@ function revealApp(id) {
   setStatus('#account-status', `เข้าสู่ระบบในชื่อ: ${id}`);
   startApp();
 }
+function showLoginHint() {
+  if (typeof USERS === 'undefined') return;
+  const rows = USERS.map(u => {
+    const list = readJSON('lotto_tickets_v1_' + u.id, null);
+    return list && list.length ? `${u.id} (${list.length} รายการ)` : null;
+  }).filter(Boolean);
+  setStatus('#login-hint', rows.length ? `บัญชีที่มีข้อมูลในเครื่องนี้: ${rows.join(', ')}` : '');
+}
 function initAuth() {
   const saved = localStorage.getItem(AUTH_KEY);
   if (saved && typeof USERS !== 'undefined' && USERS.some(u => u.id === saved)) {
     revealApp(saved);
     return;
   }
+  showLoginHint();
   $('#login-form').addEventListener('submit', e => {
     e.preventDefault();
     const id = $('#login-id').value.trim();
