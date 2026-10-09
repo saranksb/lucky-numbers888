@@ -8,6 +8,7 @@ const USERS = [
   { id: 'user1', password: 'change-me-1' },
   { id: 'user2', password: 'change-me-2' },
   { id: 'user3', password: 'change-me-3' },
+  { id: 'Aumkung', password: 'kuyraiaisus' },
   // เพิ่มได้สูงสุดรวม 20 แถว เช่น:
   // { id: 'somchai', password: 'xxxxx' },
 ];
