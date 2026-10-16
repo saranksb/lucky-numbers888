@@ -633,7 +633,13 @@ function migrateOldTickets() {
     localStorage.removeItem('lotto_tickets_v1');
   }
 }
-function checkLogin(id, pw) { return typeof USERS !== 'undefined' && USERS.some(u => u.id === id && u.password === pw); }
+// เทียบ id แบบไม่สนตัวพิมพ์เล็ก/ใหญ่ (กันเคส autocapitalize ของคีย์บอร์ดมือถือเปลี่ยนตัวอักษรแรกให้)
+// ส่วนรหัสผ่านยังคงเทียบตรงตัวพิมพ์ใหญ่เล็กเหมือนเดิม
+function checkLogin(id, pw) {
+  if (typeof USERS === 'undefined') return null;
+  const u = USERS.find(u => u.id.toLowerCase() === String(id || '').toLowerCase() && u.password === pw);
+  return u || null;
+}
 function revealApp(id) {
   CURRENT_USER = id;
   migrateOldTickets();
@@ -661,9 +667,10 @@ function initAuth() {
     e.preventDefault();
     const id = $('#login-id').value.trim();
     const pw = $('#login-pw').value;
-    if (checkLogin(id, pw)) {
-      localStorage.setItem(AUTH_KEY, id);
-      revealApp(id);
+    const matched = checkLogin(id, pw);
+    if (matched) {
+      localStorage.setItem(AUTH_KEY, matched.id);
+      revealApp(matched.id);
     } else {
       setStatus('#login-error', 'ID หรือรหัสผ่านไม่ถูกต้อง');
     }
